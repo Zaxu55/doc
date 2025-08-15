@@ -10,7 +10,7 @@ if (!$playerId) {
     exit;
 }
 
-$nonce = 'b8059d87ac';  // 🔁 Daily update karna
+$nonce = '587ffa2017';  // 🔁 Daily update karna
 $url = "https://smartucshop.com/wp-admin/admin-ajax.php?action=bgmi_api_check&player_id=" . urlencode($playerId) . "&nonce=" . $nonce;
 
 $response = @file_get_contents($url);
