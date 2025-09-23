@@ -40,4 +40,4 @@ if (!$response) {
     exit;
 }
 
-echo $response; // Send the final response back to your Wix form
+echo $response; // Send the final response back to your Wix
