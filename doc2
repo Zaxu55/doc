@@ -1,0 +1,43 @@
+<?php
+// ✅ Allow requests from any domain (for fetch)
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json');
+
+// --- STEP 1: FETCH THE MAIN SHOP PAGE ---
+// You would need to find the URL of the page that has the BGMI verification form
+$shop_page_url = "https://smartucshop.com/some-shop-page/"; // Example URL
+$shop_page_html = @file_get_contents($shop_page_url);
+
+if (!$shop_page_html) {
+    echo json_encode(['error' => 'Could not fetch the shop page to find the nonce.']);
+    exit;
+}
+
+// --- STEP 2: FIND AND EXTRACT THE NONCE FROM THE HTML ---
+// This is the tricky part. You must "View Source" on their page to find the
+// pattern. Let's pretend it's in a script tag like: var bgmi_vars = {"nonce":"abc123xyz"};
+preg_match('/"nonce":"(.*?)"/', $shop_page_html, $matches);
+
+if (empty($matches[1])) {
+    echo json_encode(['error' => 'Could not find a valid nonce on the page.']);
+    exit;
+}
+
+$dynamic_nonce = $matches[1]; // The freshly scraped nonce!
+
+// --- STEP 3: USE THE FRESH NONCE TO VERIFY THE PLAYER ID ---
+$playerId = isset($_GET['player_id']) ? $_GET['player_id'] : null;
+if (!$playerId) {
+    echo json_encode(['error' => 'Missing player_id']);
+    exit;
+}
+
+$url = "https://smartucshop.com/wp-admin/admin-ajax.php?action=bgmi_api_check&player_id=" . urlencode($playerId) . "&nonce=" . urlencode($dynamic_nonce);
+
+$response = @file_get_contents($url);
+if (!$response) {
+    echo json_encode(['error' => 'Could not fetch from SmartUcShop API even with new nonce.']);
+    exit;
+}
+
+echo $response; // Send the final response back to your Wix form
