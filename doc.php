@@ -21,8 +21,13 @@ function send_error($message) {
     exit;
 }
 
-// Fetch the main shop page to find the nonce.
-$shop_page_html = @file_get_contents($shop_page_url);
+// Fetch the main shop page using cURL to act more like a browser.
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $shop_page_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'); // A standard browser User-Agent
+$shop_page_html = curl_exec($ch);
+curl_close($ch);
 if (!$shop_page_html) {
     send_error('Could not fetch the shop page to find the nonce.');
 }
