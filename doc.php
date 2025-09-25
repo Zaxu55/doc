@@ -2,7 +2,7 @@
 // --- CONFIGURATION ---
 // These values have been updated based on the source code you provided.
 
-// The URL of the page that contains the nonce
+// The URL of the page that contains the nonce.
 $shop_page_url = "https://smartucshop.com/";
 
 // The pattern that finds the nonce inside the JavaScript fetch command.
