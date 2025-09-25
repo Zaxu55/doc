@@ -1,7 +1,5 @@
 <?php
 // --- CONFIGURATION ---
-// These values have been updated based on the source code you provided.
-
 // The URL of the page that contains the nonce.
 $shop_page_url = "https://smartucshop.com/";
 
@@ -9,7 +7,7 @@ $shop_page_url = "https://smartucshop.com/";
 $nonce_pattern = '/&nonce=([a-zA-Z0-9]+)/';
 
 
-// --- SCRIPT LOGIC (No changes needed below this line) ---
+// --- SCRIPT LOGIC ---
 
 // Set headers to allow requests from any domain (CORS) and specify JSON content type.
 header("Access-Control-Allow-Origin: *");
@@ -21,46 +19,62 @@ function send_error($message) {
     exit;
 }
 
-// Fetch the main shop page using cURL to act more like a browser.
+// --- Step 1: Fetch the main shop page using cURL ---
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $shop_page_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'); // A standard browser User-Agent
+curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 $shop_page_html = curl_exec($ch);
+
+// Check for cURL errors during the first fetch
+if(curl_errno($ch)){
+    send_error('cURL error on fetching shop page: ' . curl_error($ch));
+}
 curl_close($ch);
+
 if (!$shop_page_html) {
-    send_error('Could not fetch the shop page to find the nonce.');
+    send_error('Could not fetch the shop page to find the nonce (empty response).');
 }
 
-// Find and extract the nonce from the HTML using the correct pattern.
+// --- Step 2: Find and extract the nonce ---
 preg_match($nonce_pattern, $shop_page_html, $matches);
 if (empty($matches[1])) {
     send_error('Could not find a valid nonce on the page. The website may have changed.');
 }
-$dynamic_nonce = $matches[1]; // The freshly scraped nonce.
+$dynamic_nonce = $matches[1];
 
-// Get the Player ID from the request.
+// --- Step 3: Get Player ID and build final URL ---
 $playerId = isset($_GET['player_id']) ? $_GET['player_id'] : null;
 if (!$playerId) {
     send_error('Missing player_id parameter.');
 }
 
-// Build the final API URL with the Player ID and the dynamic nonce.
 $api_url = "https://smartucshop.com/wp-admin/admin-ajax.php?action=bgmi_api_check&player_id=" . urlencode($playerId) . "&nonce=" . urlencode($dynamic_nonce);
 
-// Call the smartucshop API.
-$response = @file_get_contents($api_url);
+// --- Step 4: Call the smartucshop API using cURL ---
+$ch_api = curl_init();
+curl_setopt($ch_api, CURLOPT_URL, $api_url);
+curl_setopt($ch_api, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch_api, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+$response = curl_exec($ch_api);
+
+// Check for cURL errors during the API call
+if(curl_errno($ch_api)){
+    send_error('cURL error on API call: ' . curl_error($ch_api));
+}
+curl_close($ch_api);
+
+
 if (!$response) {
-    send_error('Could not fetch from SmartUcShop API even with the new nonce.');
+    send_error('Could not fetch from SmartUcShop API even with the new nonce (empty response).');
 }
 
-// Check if the response is valid JSON before sending it back.
+// --- Step 5: Validate and return the response ---
 json_decode($response);
 if (json_last_error() !== JSON_ERROR_NONE) {
     send_error('Received an invalid (non-JSON) response from the SmartUcShop API.');
 }
 
-// Send the final, valid JSON response back to your Wix form.
 echo $response;
 
 ?>
